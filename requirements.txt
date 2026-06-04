@@ -1,0 +1,13 @@
+Django==5.2.15
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+psycopg2-binary==2.9.12
+python-dotenv==1.2.2
+sqlparse==0.5.5
+asgiref==3.11.1
+PyJWT==2.13.0
+tzdata==2026.2
+
+# Dev
+pytest==9.0.3
+pytest-django==4.12.0

@@ -1,26 +1,30 @@
 {
   "info": {
     "name": "IQRAAMARK API",
-    "description": "API collection for the IQRAAMARK Internship platform",
+    "description": "REST API for the IQRAAMARK Internship Platform\n\n## Authentication\n- Register (student/company)\n- Login (email + password) → JWT tokens\n- Get Profile (Bearer token required)\n- Refresh Token\n\n## Internships\n- List all internships (public)\n- Create internship (company only)\n- Update internship (owner only)\n- Delete internship (owner only)\n\n## Tech Stack\n- Django 5.2 + DRF + SimpleJWT\n- PostgreSQL (production) / SQLite (development)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:8000"
+      "value": "http://localhost:8000",
+      "type": "string"
     },
     {
       "key": "access_token",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "refresh_token",
-      "value": ""
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
     {
       "name": "Authentication",
+      "description": "Endpoints for user registration, login, profile retrieval, and token refresh.",
       "item": [
         {
           "name": "Register",
@@ -48,14 +52,29 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"student\"\n}"
+              "raw": "{\n  \"username\": \"techcorp\",\n  \"email\": \"hr@techcorp.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"company\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/auth/register/",
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "register", ""]
+            },
+            "description": "Register a new user.\n\n**Roles:** `student` | `company`\n\nAfter successful registration, the access and refresh tokens are automatically saved to collection variables."
+          },
+          "response": [
+            {
+              "name": "Success (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"user\": {\n    \"id\": 1,\n    \"username\": \"techcorp\",\n    \"email\": \"hr@techcorp.com\",\n    \"role\": \"company\"\n  },\n  \"refresh\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"access\": \"eyJhbGciOiJIUzI1NiIs...\"\n}"
             }
-          }
+          ]
         },
         {
           "name": "Login",
@@ -83,14 +102,41 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+              "raw": "{\n  \"email\": \"hr@techcorp.com\",\n  \"password\": \"SecurePass123!\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/auth/login/",
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "login", ""]
+            },
+            "description": "Login with email and password. Returns JWT access and refresh tokens.\n\nTokens are automatically saved to `access_token` and `refresh_token` collection variables."
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"refresh\": \"eyJhbGciOiJIUzI1NiIs...\",\n  \"access\": \"eyJhbGciOiJIUzI1NiIs...\"\n}"
+            },
+            {
+              "name": "Invalid Credentials (401)",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Invalid credentials.\"\n}"
             }
-          }
+          ]
         },
         {
           "name": "Get Profile",
@@ -106,8 +152,23 @@
               "raw": "{{base_url}}/api/auth/profile/",
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "profile", ""]
+            },
+            "description": "Get the authenticated user's profile.\n\nRequires a valid JWT token in the `Authorization` header."
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"username\": \"techcorp\",\n  \"email\": \"hr@techcorp.com\",\n  \"role\": \"company\"\n}"
             }
-          }
+          ]
         },
         {
           "name": "Refresh Token",
@@ -127,13 +188,29 @@
               "raw": "{{base_url}}/api/auth/token/refresh/",
               "host": ["{{base_url}}"],
               "path": ["api", "auth", "token", "refresh", ""]
+            },
+            "description": "Obtain a new access token using the refresh token.\n\nThe refresh token expires in 7 days (configured in settings)."
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"access\": \"eyJhbGciOiJIUzI1NiIs...\"\n}"
             }
-          }
+          ]
         }
       ]
     },
     {
       "name": "Internships",
+      "description": "Endpoints for listing, creating, updating, and deleting internships.\n\n- **List** — public (no auth required)\n- **Create** — requires company role\n- **Update/Delete** — requires ownership (only the company that created it)",
       "item": [
         {
           "name": "List Internships",
@@ -143,8 +220,23 @@
               "raw": "{{base_url}}/api/internships/",
               "host": ["{{base_url}}"],
               "path": ["api", "internships", ""]
+            },
+            "description": "Retrieve a list of all internships. Public endpoint — no authentication required."
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": 1,\n    \"title\": \"Software Engineer Intern\",\n    \"description\": \"Join our team to build cool stuff\",\n    \"location\": \"Remote\",\n    \"stipend\": \"15000.00\",\n    \"duration\": \"3 months\",\n    \"company\": 2,\n    \"company_name\": \"techcorp\",\n    \"created_at\": \"2026-06-04T07:00:00Z\",\n    \"updated_at\": \"2026-06-04T07:00:00Z\"\n  }\n]"
             }
-          }
+          ]
         },
         {
           "name": "Create Internship",
@@ -168,8 +260,35 @@
               "raw": "{{base_url}}/api/internships/",
               "host": ["{{base_url}}"],
               "path": ["api", "internships", ""]
+            },
+            "description": "Create a new internship listing.\n\n**Requirements:**\n- Authenticated with a valid JWT token\n- User role must be `company`\n\n`stipend` is optional (`null` allowed)."
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"title\": \"Software Engineer Intern\",\n  \"description\": \"Join our team to build cool stuff\",\n  \"location\": \"Remote\",\n  \"stipend\": \"15000.00\",\n  \"duration\": \"3 months\",\n  \"company\": 2,\n  \"company_name\": \"techcorp\",\n  \"created_at\": \"2026-06-04T07:00:00Z\",\n  \"updated_at\": \"2026-06-04T07:00:00Z\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Only companies can create internships.\"\n}"
             }
-          }
+          ]
         },
         {
           "name": "Update Internship",
@@ -193,8 +312,35 @@
               "raw": "{{base_url}}/api/internships/1/",
               "host": ["{{base_url}}"],
               "path": ["api", "internships", "1", ""]
+            },
+            "description": "Update an existing internship.\n\n**Requirements:**\n- Authenticated with a valid JWT token\n- Must be the company that created the internship\n\nSupports partial updates (like PATCH) — send only the fields you want to change."
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"title\": \"Updated Intern Title\",\n  \"description\": \"Join our team to build cool stuff\",\n  \"location\": \"Remote\",\n  \"stipend\": \"20000.00\",\n  \"duration\": \"3 months\",\n  \"company\": 2,\n  \"company_name\": \"techcorp\",\n  \"created_at\": \"2026-06-04T07:00:00Z\",\n  \"updated_at\": \"2026-06-04T07:01:00Z\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"You do not have permission to update this internship.\"\n}"
             }
-          }
+          ]
         },
         {
           "name": "Delete Internship",
@@ -210,8 +356,196 @@
               "raw": "{{base_url}}/api/internships/1/",
               "host": ["{{base_url}}"],
               "path": ["api", "internships", "1", ""]
+            },
+            "description": "Delete an internship.\n\n**Requirements:**\n- Authenticated with a valid JWT token\n- Must be the company that created the internship"
+          },
+          "response": [
+            {
+              "name": "Success (204)",
+              "status": "No Content",
+              "code": 204,
+              "header": {},
+              "body": "{\n  \"message\": \"Internship deleted.\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"You do not have permission to delete this internship.\"\n}"
             }
-          }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "description": "Endpoints for applying to internships and listing applications.\n\n- **Apply (POST)** — student only, one application per internship\n- **List (GET)** — students see their own, companies see applications to their internships",
+      "item": [
+        {
+          "name": "Apply for Internship",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internship\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/applications/apply/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", "apply", ""]
+            },
+            "description": "Apply for an internship.\n\n**Requirements:**\n- Authenticated with a valid JWT token\n- User role must be `student`\n- Only one application per internship (duplicate check)"
+          },
+          "response": [
+            {
+              "name": "Created (201)",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"internship\": 1,\n  \"internship_title\": \"Software Engineer Intern\",\n  \"student\": 3,\n  \"student_email\": \"student@example.com\",\n  \"resume\": null,\n  \"status\": \"pending\",\n  \"applied_at\": \"2026-06-04T07:00:00Z\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Only students can apply for internships.\"\n}"
+            },
+            {
+              "name": "Duplicate (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"You have already applied for this internship.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/applications/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", ""]
+            },
+            "description": "List applications.\n\n- **Student:** sees their own applications\n- **Company:** sees applications to their internships\n\nRequires authentication."
+          },
+          "response": [
+            {
+              "name": "Success (200) — Student",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "[\n  {\n    \"id\": 1,\n    \"internship\": 1,\n    \"internship_title\": \"Software Engineer Intern\",\n    \"student\": 3,\n    \"student_email\": \"student@example.com\",\n    \"resume\": null,\n    \"status\": \"pending\",\n    \"applied_at\": \"2026-06-04T07:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Update Application Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/applications/1/status/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "applications", "1", "status", ""]
+            },
+            "description": "Update an application's status.\n\n**Requirements:**\n- Authenticated with a valid JWT token\n- User role must be `company`\n- Must own the internship this application belongs to\n\nValid statuses: `pending`, `accepted`, `rejected`"
+          },
+          "response": [
+            {
+              "name": "Success (200)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": 1,\n  \"internship\": 1,\n  \"internship_title\": \"Software Engineer Intern\",\n  \"student\": 3,\n  \"student_email\": \"student@example.com\",\n  \"resume\": null,\n  \"status\": \"accepted\",\n  \"applied_at\": \"2026-06-04T07:00:00Z\"\n}"
+            },
+            {
+              "name": "Forbidden (403)",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Only companies can update application status.\"\n}"
+            },
+            {
+              "name": "Invalid Status (400)",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Invalid status. Choose from pending, accepted, rejected.\"\n}"
+            }
+          ]
         }
       ]
     }
